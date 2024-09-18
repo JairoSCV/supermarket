@@ -15,6 +15,8 @@ import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
 
+import com.app.security.service.IUsuarioService;
+
 @Configuration
 @EnableWebSecurity
 @EnableMethodSecurity
@@ -29,6 +31,7 @@ public class SecurityConfig{
             .authorizeHttpRequests(
                 auth -> {
                     auth.requestMatchers(HttpMethod.GET,"/productos/findAll").permitAll();
+                    auth.requestMatchers(HttpMethod.POST,"/auth/save").permitAll();
                     auth.anyRequest().authenticated();
                 }
             )
@@ -40,9 +43,10 @@ public class SecurityConfig{
         return authenticationConfiguration.getAuthenticationManager();
     }
 
-    public AuthenticationProvider authenticationProvider(SecUserDetailsService secUserDetailsService){
+    @Bean
+    public AuthenticationProvider authenticationProvider(IUsuarioService usuarioService){
         DaoAuthenticationProvider provider = new DaoAuthenticationProvider();
-        provider.setUserDetailsService(secUserDetailsService);
+        provider.setUserDetailsService(usuarioService);
         provider.setPasswordEncoder(passwordEncoder());
         return provider;
     }
