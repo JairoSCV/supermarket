@@ -22,8 +22,11 @@ import com.app.persistence.entity.Compra;
 import com.app.persistence.entity.ComprasProducto;
 import com.app.persistence.entity.ComprasProductoPK;
 
+import io.swagger.v3.oas.annotations.tags.Tag;
+
 @RestController
 @RequestMapping("/compras")
+@Tag(name = "Controlador de Compras")
 public class CompraController {
 
     @Autowired

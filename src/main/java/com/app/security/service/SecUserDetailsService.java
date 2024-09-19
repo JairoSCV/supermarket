@@ -53,14 +53,17 @@ public class SecUserDetailsService implements IUsuarioService{
 
         Set<Rol> listaRoles = new HashSet<>();
 
-        for (Rol rol : usuario.getRoles()) {
-            Rol existingRol = rolRepository.findRolByNombre(rol.getNombre());
+        usuario.getRoles().forEach(role -> {
+            //Se crea una instancia de Rol donde se valida y almacena un Rol existente o NO
+            Rol existingRol = rolRepository.findRolByNombre(role.getNombre());
             if (existingRol != null) {
+                //Si un rol ya existe, se utiliza la referencia del rol existente de la base de datos
                 listaRoles.add(existingRol);
             } else {
-                listaRoles.add(rol);
+                //Si un rol no existe, se agrega la instancia del rol proporcionado por el usuario
+                listaRoles.add(role);
             }
-        }
+        });
 
         Usuario usuarioNuevo = Usuario.builder()
                         .username(usuario.getUsername())

@@ -30,8 +30,17 @@ public class SecurityConfig{
             .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
             .authorizeHttpRequests(
                 auth -> {
+                    //Controlador Productos
+                    auth.requestMatchers(HttpMethod.POST,"/productos/save").hasAnyRole("ADMIN","USER");
                     auth.requestMatchers(HttpMethod.GET,"/productos/findAll").permitAll();
-                    auth.requestMatchers(HttpMethod.POST,"/auth/save").permitAll();
+                    auth.requestMatchers(HttpMethod.GET,"/productos/findById/{id}").permitAll();
+                    auth.requestMatchers(HttpMethod.GET,"/productos/categoria/{id}").permitAll();
+                    auth.requestMatchers(HttpMethod.DELETE,"/productos/delete/{id}").hasAnyRole("ADMIN","USER");
+
+
+
+                    auth.requestMatchers(HttpMethod.POST,"/auth/save").hasRole("ADMIN");
+                    auth.requestMatchers(HttpMethod.GET,"/swagger-ui/index.html").hasRole("ADMIN");
                     auth.anyRequest().authenticated();
                 }
             )
@@ -58,7 +67,7 @@ public class SecurityConfig{
     }
 
 
-    //  public static void main(String[] args) {
-    //      System.out.println(new BCryptPasswordEncoder().encode("123")); 
-    //  }
+    //   public static void main(String[] args) {
+    //       System.out.println(new BCryptPasswordEncoder().encode("123")); 
+    //   }
 }

@@ -25,3 +25,7 @@ INSERT INTO compras_productos(id_compra, id_producto, cantidad, estado, total) V
 INSERT INTO compras_productos(id_compra, id_producto, cantidad, estado, total) VALUES(2,5,2,true,6);
 
 INSERT INTO compras_productos(id_compra, id_producto, cantidad, estado, total) VALUES(3,3,1,true,0.5);
+
+INSERT INTO usuario(username,password) VALUES("jairo","$2a$10$SOPTNagYeJJuW4EffCMJvusiTzeskyq2pXdF4.j0kMbxGXic8QhpO");
+INSERT INTO rol(rol_name) VALUES("ADMIN");
+INSERT INTO usuario_rol(id_rol,id_usuario) VALUES(1,1);
