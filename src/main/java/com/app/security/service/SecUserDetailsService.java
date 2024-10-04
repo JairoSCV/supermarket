@@ -1,8 +1,12 @@
 package com.app.security.service;
 
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.security.authentication.BadCredentialsException;
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.Authentication;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.core.userdetails.User;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
@@ -10,15 +14,24 @@ import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.stereotype.Service;
 
 import com.app.excepciones.ExcepcionPersonalizada;
+import com.app.security.controller.dto.AuthCreateUserRequest;
+import com.app.security.controller.dto.AuthLoginRequest;
+import com.app.security.controller.dto.AuthResponse;
 import com.app.security.entity.Rol;
+import com.app.security.entity.RolEnum;
 import com.app.security.entity.Usuario;
 import com.app.security.repository.RolRepository;
 import com.app.security.repository.UsuarioRepository;
+import com.app.security.util.JwtUtils;
 
 import java.util.*;
+import java.util.stream.Collectors;
 
 @Service
 public class SecUserDetailsService implements IUsuarioService{
+
+    @Autowired
+    private JwtUtils jwtUtils;
 
     @Autowired
     private UsuarioRepository usuarioRepository;
@@ -74,4 +87,83 @@ public class SecUserDetailsService implements IUsuarioService{
         return usuarioRepository.save(usuarioNuevo);
     }
 
+    public AuthResponse loginUser(AuthLoginRequest authLoginRequest){
+        String username = authLoginRequest.username();
+        String password = authLoginRequest.password();
+
+        Authentication authentication = authenticate(username,password);
+        SecurityContextHolder.getContext().setAuthentication(authentication);
+
+        String accessToken = jwtUtils.generateToken(authentication);
+        AuthResponse authResponse = new AuthResponse(username, "User logged successfully", accessToken,true);
+
+        return authResponse;
+    }
+
+    public Authentication authenticate(String username, String password){
+        UserDetails userDetails = this.loadUserByUsername(username);
+        if(userDetails == null){
+            throw new BadCredentialsException("Invalid username or password");
+        }
+        if (!encoder.matches(password, userDetails.getPassword())) {
+            throw new BadCredentialsException("Incorrect password");
+        }
+
+        return new UsernamePasswordAuthenticationToken(username, userDetails.getPassword(), userDetails.getAuthorities());
+    }
+
+    public AuthResponse createUser(AuthCreateUserRequest authCreateUserRequest){
+        // Extraemos los datos que se requiere
+        String username = authCreateUserRequest.username();
+        String password = authCreateUserRequest.password();
+        List<String> rolesSolicitud = authCreateUserRequest.roleRequest().roleListName();
+
+        //Aqui se almacenarán los roles
+        Set<Rol> roles = new HashSet<>();
+        
+        //Recorremos los roles que se encuentran en la lista
+        rolesSolicitud.forEach(r -> {
+            try {
+                // Convertimos String a RolEnum
+                RolEnum rolEnum = RolEnum.valueOf(r);
+        
+                // Verificando si el rol existe en el repositorio
+                Rol existing = rolRepository.findRolByNombre(rolEnum);
+                
+                // Si el rol existe, lo añadimos; si no, creamos uno nuevo
+                if (existing != null) {
+                    roles.add(existing);
+                } else {
+                    Rol rolAux = Rol.builder().nombre(rolEnum).build();
+                    roles.add(rolAux);
+                }
+            } catch (IllegalArgumentException e) {
+                throw new IllegalArgumentException(e.getMessage());
+            }
+        });
+
+        // En caso la lista esté vacía, nos retorna una excepción
+        if(roles.isEmpty()){
+            throw new IllegalArgumentException("Los roles especificados no existen");
+        }
+
+        Usuario usuario = Usuario.builder()
+                            .username(username)
+                            .password(encoder.encode(password))
+                            .roles(roles).build();
+        
+        Usuario usuarioGuardar = usuarioRepository.save(usuario);
+
+        ArrayList<SimpleGrantedAuthority> rolesAuthorities = new ArrayList<>();
+
+        usuarioGuardar.getRoles()
+        .forEach(rol -> rolesAuthorities.add(new SimpleGrantedAuthority("ROLE_".concat(rol.getNombre().name()))));
+
+        Authentication authentication = new UsernamePasswordAuthenticationToken(usuarioGuardar, null, rolesAuthorities);
+
+        String tokenAcceso = jwtUtils.generateToken(authentication);
+
+        AuthResponse authResponse = new AuthResponse(username, "User created successfully", tokenAcceso, true);
+        return authResponse;
+    }
 }

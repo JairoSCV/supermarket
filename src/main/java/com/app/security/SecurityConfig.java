@@ -1,5 +1,6 @@
 package com.app.security;
 
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.http.HttpMethod;
@@ -14,13 +15,19 @@ import org.springframework.security.config.annotation.web.configuration.EnableWe
 import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
+import org.springframework.security.web.authentication.www.BasicAuthenticationFilter;
 
+import com.app.security.filter.JWTokenValidator;
 import com.app.security.service.IUsuarioService;
+import com.app.security.util.JwtUtils;
 
 @Configuration
 @EnableWebSecurity
 @EnableMethodSecurity
 public class SecurityConfig{
+
+    @Autowired
+    private JwtUtils jwtUtils;
 
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity httpSecurity) throws Exception{
@@ -30,6 +37,8 @@ public class SecurityConfig{
             .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
             .authorizeHttpRequests(
                 auth -> {
+                    auth.requestMatchers(HttpMethod.POST,"/auth/**").permitAll();
+
                     //Controlador Productos
                     auth.requestMatchers(HttpMethod.POST,"/productos/save").hasAnyRole("ADMIN","USER");
                     auth.requestMatchers(HttpMethod.GET,"/productos/findAll").permitAll();
@@ -41,9 +50,10 @@ public class SecurityConfig{
 
                     auth.requestMatchers(HttpMethod.POST,"/auth/save").hasRole("ADMIN");
                     auth.requestMatchers(HttpMethod.GET,"/swagger-ui/index.html").hasRole("ADMIN");
-                    auth.anyRequest().authenticated();
+                    auth.anyRequest().denyAll();
                 }
             )
+            .addFilterBefore(new JWTokenValidator(jwtUtils), BasicAuthenticationFilter.class)
             .build();
     }
 
@@ -67,7 +77,7 @@ public class SecurityConfig{
     }
 
 
-    //   public static void main(String[] args) {
-    //       System.out.println(new BCryptPasswordEncoder().encode("123")); 
-    //   }
+    //    public static void main(String[] args) {
+    //        System.out.println(new BCryptPasswordEncoder().encode("123")); 
+    //    }
 }
